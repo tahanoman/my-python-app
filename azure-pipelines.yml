@@ -1,0 +1,37 @@
+trigger:
+- main  # This pipeline triggers on pushes to the main branch
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+# 1. Checkout the code from GitHub
+- checkout: self
+
+# 2. (Optional) Set up Python and install dependencies for testing/building
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '3.9'
+
+- script: |
+    pip install --upgrade pip
+    pip install -r requirements.txt
+    echo "Running tests (if any)..."
+    # Run tests here if applicable, e.g., pytest
+  displayName: 'Install dependencies & Run tests'
+
+# 3. Deploy to Azure VM using the Custom Script Extension
+- task: AzureCLI@2
+  inputs:
+    azureSubscription: 'MyAzureConnection'  # Use the service connection you created
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      # This command uses the Custom Script Extension to run your update_app.sh script on the VM.
+      az vm extension set \
+        --resource-group Taha-tuts \
+        --vm-name my-vm \
+        --name CustomScript \
+        --publisher Microsoft.Azure.Extensions \
+        --settings '{"commandToExecute": "/home/azureuser/update_app.sh"}'
+  displayName: 'Deploy to Azure VM'
